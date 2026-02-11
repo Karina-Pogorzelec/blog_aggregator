@@ -1,11 +1,18 @@
 package main
-
+/* 
+goose -dir sql/schema postgres "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable" down
+goose -dir sql/schema postgres "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable" up
+*/
 import (
 	"fmt"
     "log"
     "os"
+    "database/sql"
 
-	"github.com/Karina-Pogorzelec/blog_aggregator/internal/config"	
+    _ "github.com/lib/pq"
+
+	"github.com/Karina-Pogorzelec/blog_aggregator/internal/config"
+    "github.com/Karina-Pogorzelec/blog_aggregator/internal/database"	
 )
 
 func main() {
@@ -14,10 +21,18 @@ func main() {
         log.Fatalf("error reading config: %v", err)
     }
 
-    st := &state{cfg: &cfg}
+    db, err := sql.Open("postgres", cfg.DBURL)
+    if err != nil {
+        log.Fatalf("error connecting to database: %v", err)
+    }
+
+    dbQueries := database.New(db)
+
+    st := &state{cfg: &cfg, db: dbQueries}
 
     cmds := &commands{handlers: make(map[string]func(*state, command) error)}
     cmds.register("login", handlerLogin)
+    cmds.register("register", handlerRegister)
 
     if len(os.Args) < 2 {
         fmt.Println("No command provided")
