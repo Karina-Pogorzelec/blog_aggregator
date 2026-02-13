@@ -15,6 +15,12 @@ import (
     "github.com/Karina-Pogorzelec/blog_aggregator/internal/database"	
 )
 
+
+type state struct {
+	db  *database.Queries
+	cfg	*config.Config
+}
+
 func main() {
 	cfg, err := config.Read()
     if err != nil {
@@ -31,8 +37,12 @@ func main() {
     st := &state{cfg: &cfg, db: dbQueries}
 
     cmds := &commands{handlers: make(map[string]func(*state, command) error)}
+
     cmds.register("login", handlerLogin)
     cmds.register("register", handlerRegister)
+    cmds.register("reset", handlerReset)
+    cmds.register("users", handlerUsers)
+    cmds.register("agg", handlerAgg)
 
     if len(os.Args) < 2 {
         fmt.Println("No command provided")
