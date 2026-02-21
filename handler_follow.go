@@ -10,21 +10,13 @@ import (
 	"github.com/Karina-Pogorzelec/blog_aggregator/internal/database"
 )
 
-func handlerFollow(s *state, cmd command) error {
-	username := s.cfg.CurrentUser
-	if username == "" {
-		return fmt.Errorf("no user logged in")
-	}
-	
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.arguments) != 1 {
 		return fmt.Errorf("invalid number of arguments")
 	}
 
 	feedURL := cmd.arguments[0]
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
-	}
+
 	feedRec, err := s.db.GetFeedByURL(context.Background(), feedURL)
 	if err != nil {
 		return fmt.Errorf("failed to get feed: %w", err)

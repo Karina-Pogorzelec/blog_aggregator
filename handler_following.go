@@ -3,21 +3,13 @@ package main
 import (
 	"fmt"
 	"context"
+
+	"github.com/Karina-Pogorzelec/blog_aggregator/internal/database"
 )
 
-func handlerFollowing(s *state, cmd command) error {
-	username := s.cfg.CurrentUser
-	if username == "" {
-		return fmt.Errorf("no user logged in")
-	}
-	 
+func handlerFollowing(s *state, cmd command, user database.User) error {	 
 	if len(cmd.arguments) != 0 {
 		return fmt.Errorf("too many arguments")
-	}
-
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
 	}
 
 	follows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)

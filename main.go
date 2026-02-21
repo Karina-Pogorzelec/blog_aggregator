@@ -8,6 +8,7 @@ import (
     "log"
     "os"
     "database/sql"
+    "context"
 
     _ "github.com/lib/pq"
 
@@ -43,10 +44,11 @@ func main() {
     cmds.register("reset", handlerReset)
     cmds.register("users", handlerUsers)
     cmds.register("agg", handlerAgg)
-    cmds.register("addfeed", handlerAddFeed)
+    cmds.register("addfeed", middlewareLoggedIn(handlerAddFeed))
     cmds.register("feeds", handlerFeeds)
-    cmds.register("follow", handlerFollow)
-    cmds.register("following", handlerFollowing)
+    cmds.register("follow", middlewareLoggedIn(handlerFollow))
+    cmds.register("following", middlewareLoggedIn(handlerFollowing))
+    cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
 
     if len(os.Args) < 2 {
         fmt.Println("No command provided")
@@ -61,5 +63,22 @@ func main() {
     if err := cmds.run(st, cmd); err != nil {
         fmt.Println("error:", err)
         os.Exit(1)
+    }
+}
+
+
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+    return func(s *state, cmd command) error {
+        username := s.cfg.CurrentUser
+        if username == "" {
+            return fmt.Errorf("no user logged in")
+        }
+
+        user, err := s.db.GetUser(context.Background(), username)
+	    if err != nil {
+		     return fmt.Errorf("failed to get user: %w", err)
+	    }
+
+        return handler(s, cmd, user)
     }
 }
