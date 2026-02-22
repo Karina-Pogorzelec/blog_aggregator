@@ -4,6 +4,12 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"database/sql"
+	"strings"	
+	"log"
+
+	"github.com/google/uuid"
+	"github.com/Karina-Pogorzelec/blog_aggregator/internal/database"
 )
 
 
@@ -47,7 +53,30 @@ func scrapeFeeds(s *state) error {
 	}
 	
 	for _, item := range feedData.Channel.Item {
-		fmt.Printf("Title: %s\nLink: %s\nDescription: %s\nPubDate: %s\n\n", item.Title, item.Link, item.Description, item.PubDate)
+		publishedAt := sql.NullTime{}
+		if t, err := time.Parse(time.RFC1123Z, item.PubDate); err == nil {
+			publishedAt = sql.NullTime{
+				Time:  t,
+				Valid: true,
+			}
+		}
+		_, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: true},
+			PublishedAt: publishedAt,
+			FeedID:		 feed.ID,
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				continue
+			}
+			log.Printf("Couldn't create post: %v", err)
+			continue
+		}
 	}
 
 	return nil
